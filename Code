@@ -521,4 +521,3 @@
                     else if (char === '3') this.state = "THREE_DETECTED";
                     else if (char === '2') this.state = "LANDLINE_CITY_2";
                     else if (char === '4') this.state = "LANDLINE_CITY_4";
-              
