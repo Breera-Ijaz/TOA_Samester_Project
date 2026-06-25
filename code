@@ -1,1 +1,524 @@
-
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automata Theory: DFA & Regex Resume Parser</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-gradient: linear-gradient(135deg, #0b0f19 0%, #150b2e 100%);
+            --panel-bg: rgba(255, 255, 255, 0.04);
+            --panel-border: rgba(255, 255, 255, 0.08);
+            --accent-neon: #a855f7;
+            --accent-teal: #06b6d4;
+            --accent-amber: #f59e0b;
+            --accent-green: #10b981;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --shadow-glow: 0 0 20px rgba(168, 85, 247, 0.2);
+            --font-main: 'Outfit', sans-serif;
+            --font-mono: 'Fira Code', monospace;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 2rem;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(168, 85, 247, 0.4);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(168, 85, 247, 0.6);
+        }
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+        header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, var(--accent-neon), var(--accent-teal));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: 1px;
+            text-shadow: var(--shadow-glow);
+        }
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1.1fr 1.9fr;
+            gap: 2rem;
+            max-width: 1500px;
+            margin: 0 auto;
+            width: 100%;
+            flex-grow: 1;
+        }
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* Glassmorphic Panel Base */
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--panel-border);
+            border-radius: 16px;
+            padding: 2rem;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+        .panel:hover {
+            border-color: rgba(168, 85, 247, 0.2);
+        }
+        h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-main);
+            border-left: 4px solid var(--accent-neon);
+            padding-left: 10px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        /* Inputs Area */
+        .dropzone {
+            border: 2px dashed rgba(168, 85, 247, 0.3);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(168, 85, 247, 0.02);
+            color: var(--text-muted);
+        }
+        .dropzone:hover, .dropzone.dragover {
+            border-color: var(--accent-teal);
+            background: rgba(6, 182, 212, 0.05);
+            color: var(--text-main);
+        }
+        .dropzone svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 1rem;
+            stroke: currentColor;
+        }
+        textarea {
+            width: 100%;
+            height: 250px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--panel-border);
+            border-radius: 10px;
+            padding: 1rem;
+            color: var(--text-main);
+            font-family: var(--font-main);
+            font-size: 0.95rem;
+            resize: none;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+        textarea:focus {
+            border-color: var(--accent-neon);
+        }
+        .sample-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+        button {
+            padding: 0.75rem 1.25rem;
+            border-radius: 8px;
+            border: none;
+            font-family: var(--font-main);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-main);
+            border: 1px solid var(--panel-border);
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-2px);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-neon) 0%, #7e22ce 100%);
+            color: #fff;
+            box-shadow: var(--shadow-glow);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(168, 85, 247, 0.4);
+        }
+        .btn-accent {
+            background: linear-gradient(135deg, var(--accent-teal) 0%, #0891b2 100%);
+            color: #fff;
+        }
+        .btn-accent:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(6, 182, 212, 0.3);
+        }
+        /* Results Display */
+        .profile-card {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.25rem;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1.5rem;
+            border-radius: 12px;
+            border: 1px solid var(--panel-border);
+        }
+        @media (max-width: 600px) {
+            .profile-card {
+                grid-template-columns: 1fr;
+            }
+        }
+        .info-field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .info-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .info-value {
+            font-size: 1.05rem;
+            font-weight: 600;
+        }
+        .info-value.empty {
+            color: var(--text-muted);
+            font-style: italic;
+            font-weight: 400;
+        }
+        /* Tables styling */
+        .table-container {
+            width: 100%;
+            overflow-x: auto;
+            border-radius: 10px;
+            border: 1px solid var(--panel-border);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+        th, td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--panel-border);
+        }
+        th {
+            background: rgba(255, 255, 255, 0.03);
+            color: var(--text-main);
+            font-weight: 600;
+        }
+        tr:last-child td {
+            border-bottom: none;
+        }
+        /* DFA Console Logger */
+        .console-panel {
+            grid-column: 1 / span 2;
+            background: rgba(5, 5, 12, 0.9);
+            border: 1px solid rgba(168, 85, 247, 0.15);
+            font-family: var(--font-mono);
+            padding: 1.5rem;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-height: 400px;
+        }
+        @media (max-width: 1024px) {
+            .console-panel {
+                grid-column: 1;
+            }
+        }
+        .console-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 0.5rem;
+        }
+        .console-title {
+            color: var(--accent-green);
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.95rem;
+        }
+        .console-title::before {
+            content: "";
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-green);
+        }
+        .console-body {
+            overflow-y: auto;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            font-size: 0.85rem;
+            color: #d1d5db;
+        }
+        .console-line {
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+        .console-line.info { color: var(--accent-teal); }
+        .console-line.success { color: var(--accent-green); }
+        .console-line.warning { color: var(--accent-amber); }
+        .console-line.state-change { color: #c084fc; }
+        /* Animation */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .skills-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.25rem;
+        }
+        .skill-badge {
+            background: rgba(168, 85, 247, 0.15);
+            border: 1px solid rgba(168, 85, 247, 0.3);
+            color: #d8b4fe;
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>DFA & Regex Resume Parser</h1>
+        <p>Interactive Automata Theory Visualizer & Structured CV Profile Extractor</p>
+    </header>
+    <main class="container">
+        <!-- Input Panel -->
+        <section class="panel">
+            <h2>Resume Input</h2>
+            
+            <div id="dropzone" class="dropzone">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z" />
+                </svg>
+                <p>Drag and drop a <strong>.txt</strong> resume here or click to select</p>
+                <input type="file" id="fileInput" accept=".txt" style="display: none;">
+            </div>
+            <textarea id="resumeText" placeholder="Paste plain text resume details here..."></textarea>
+            <div class="sample-buttons">
+                <button type="button" class="btn-secondary" onclick="loadSample(0)">Load Fresher</button>
+                <button type="button" class="btn-secondary" onclick="loadSample(1)">Load Experienced</button>
+                <button type="button" class="btn-secondary" onclick="loadSample(2)">Load Developer</button>
+            </div>
+            <button type="button" class="btn-primary" onclick="parseResume()">Parse CV Profile</button>
+        </section>
+        <!-- Output Panel -->
+        <section class="panel">
+            <h2 style="border-color: var(--accent-teal);">
+                Parsed Details
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" class="btn-secondary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="runTestSuite()">Run Test Suite</button>
+                    <button type="button" class="btn-accent" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;" onclick="exportCSV()">Export CSV</button>
+                </div>
+            </h2>
+            <div class="profile-card">
+                <div class="info-field">
+                    <span class="info-label">Candidate Name</span>
+                    <span id="outName" class="info-value empty">Not Parsed</span>
+                </div>
+                <div class="info-field">
+                    <span class="info-label">Contact Emails</span>
+                    <span id="outEmails" class="info-value empty">Not Parsed</span>
+                </div>
+                <div class="info-field">
+                    <span class="info-label">Contact Phone</span>
+                    <span id="outPhones" class="info-value empty">Not Parsed</span>
+                </div>
+                <div class="info-field" style="grid-column: 1 / span 2;">
+                    <span class="info-label">Technical Skills</span>
+                    <div id="outSkills" class="skills-container">
+                        <span class="info-value empty" style="margin-top: 0;">Not Parsed</span>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--accent-teal);">Education History</h3>
+                <div class="table-container">
+                    <table id="educationTable">
+                        <thead>
+                            <tr>
+                                <th>Degree</th>
+                                <th>Field/Major</th>
+                                <th>University</th>
+                                <th>Graduation Year</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="4" style="text-align: center; color: var(--text-muted); font-style: italic;">No records extracted</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div>
+                <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--accent-teal);">Work Experience</h3>
+                <div class="table-container">
+                    <table id="experienceTable">
+                        <thead>
+                            <tr>
+                                <th>Job Title</th>
+                                <th>Company</th>
+                                <th>Date Range</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="3" style="text-align: center; color: var(--text-muted); font-style: italic;">No records extracted</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+        <!-- DFA Live Debugger Console -->
+        <section class="console-panel">
+            <div class="console-header">
+                <div class="console-title">Automata State Transition Console</div>
+                <button type="button" class="btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; border-radius: 4px;" onclick="clearConsole()">Clear Logs</button>
+            </div>
+            <div id="consoleBody" class="console-body">
+                <div class="console-line info">[System] Welcome. Select a sample resume or paste details, then click "Parse CV Profile" to trace state machine transitions.</div>
+            </div>
+        </section>
+    </main>
+    <!-- Scripting Area -->
+    <script>
+        // =====================================================================
+        // 1. DFA IMPLEMENTATIONS
+        // =====================================================================
+        class EmailDFA {
+            constructor() { this.reset(); }
+            reset() {
+                this.state = "START";
+                this.history = [];
+            }
+            transition(char) {
+                const prev = this.state;
+                const isAlphanumeric = /[a-zA-Z0-9]/.test(char);
+                const isAlpha = /[a-zA-Z]/.test(char);
+                const isLocalSymbol = /[._%+-]/.test(char);
+                if (this.state === "START") {
+                    if (isAlphanumeric || isLocalSymbol) this.state = "LOCAL_PART";
+                    else this.state = "INVALID";
+                } else if (this.state === "LOCAL_PART") {
+                    if (char === '@') this.state = "AT_SYMBOL";
+                    else if (isAlphanumeric || isLocalSymbol) this.state = "LOCAL_PART";
+                    else this.state = "INVALID";
+                } else if (this.state === "AT_SYMBOL") {
+                    if (isAlphanumeric || char === '-') this.state = "DOMAIN";
+                    else this.state = "INVALID";
+                } else if (this.state === "DOMAIN") {
+                    if (char === '.') this.state = "DOT";
+                    else if (isAlphanumeric || char === '-') this.state = "DOMAIN";
+                    else this.state = "INVALID";
+                } else if (this.state === "DOT") {
+                    if (isAlpha) this.state = "TLD";
+                    else this.state = "INVALID";
+                } else if (this.state === "TLD") {
+                    if (isAlpha) this.state = "TLD";
+                    else if (char === '.') this.state = "DOT";
+                    else this.state = "INVALID";
+                } else {
+                    this.state = "INVALID";
+                }
+                this.history.push({ prev, char, current: this.state });
+                return this.state;
+            }
+            isAccepted() { return this.state === "TLD"; }
+            validate(str) {
+                this.reset();
+                for (let c of str) {
+                    this.transition(c);
+                    if (this.state === "INVALID") return false;
+                }
+                return this.isAccepted();
+            }
+        }
+        class PakistaniPhoneDFA {
+            constructor() { this.reset(); }
+            reset() {
+                this.state = "START";
+                this.history = [];
+            }
+            transition(char) {
+                const prev = this.state;
+                const isDigit = /[0-9]/.test(char);
+                if (this.state === "START") {
+                    if (char === '+') this.state = "PLUS_DETECTED";
+                    else if (char === '0') this.state = "ZERO_DETECTED";
+                    else this.state = "INVALID";
+                } else if (this.state === "PLUS_DETECTED") {
+                    this.state = (char === '9') ? "NINE_DETECTED" : "INVALID";
+                } else if (this.state === "NINE_DETECTED") {
+                    this.state = (char === '2') ? "TWO_DETECTED" : "INVALID";
+                } else if (this.state === "TWO_DETECTED" || this.state === "TWO_SEP_DETECTED") {
+                    if (char === ' ' || char === '-') this.state = "TWO_SEP_DETECTED";
+                    else if (char === '3') this.state = "THREE_DETECTED";
+                    else if (char === '2') this.state = "LANDLINE_CITY_2";
+                    else if (char === '4') this.state = "LANDLINE_CITY_4";
+              
