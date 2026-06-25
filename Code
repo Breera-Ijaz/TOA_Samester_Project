@@ -521,3 +521,674 @@
                     else if (char === '3') this.state = "THREE_DETECTED";
                     else if (char === '2') this.state = "LANDLINE_CITY_2";
                     else if (char === '4') this.state = "LANDLINE_CITY_4";
+                    else if (char === '5') this.state = "LANDLINE_CITY_5";
+                    else this.state = "INVALID";
+                } else if (this.state === "ZERO_DETECTED") {
+                    if (char === '3') this.state = "THREE_DETECTED";
+                    else if (char === '2') this.state = "LANDLINE_CITY_2";
+                    else if (char === '4') this.state = "LANDLINE_CITY_4";
+                    else if (char === '5') this.state = "LANDLINE_CITY_5";
+                    else this.state = "INVALID";
+                } else if (this.state === "THREE_DETECTED") {
+                    this.state = isDigit ? "MOBILE_CODE_1" : "INVALID";
+                } else if (this.state === "MOBILE_CODE_1") {
+                    this.state = isDigit ? "MOBILE_CODE_2" : "INVALID";
+                } else if (this.state === "LANDLINE_CITY_2") {
+                    this.state = (char === '1') ? "LANDLINE_CITY_CODE" : "INVALID";
+                } else if (this.state === "LANDLINE_CITY_4") {
+                    this.state = (char === '2') ? "LANDLINE_CITY_CODE" : "INVALID";
+                } else if (this.state === "LANDLINE_CITY_5") {
+                    this.state = (char === '1') ? "LANDLINE_CITY_CODE" : "INVALID";
+                } else if (this.state === "MOBILE_CODE_2" || this.state === "LANDLINE_CITY_CODE") {
+                    if (char === ' ' || char === '-') this.state = "HYPHEN_OR_SPACE";
+                    else if (isDigit) this.state = "DIGIT_1";
+                    else this.state = "INVALID";
+                } else if (this.state === "HYPHEN_OR_SPACE") {
+                    this.state = isDigit ? "DIGIT_1" : "INVALID";
+                } else if (this.state === "DIGIT_1") {
+                    this.state = isDigit ? "DIGIT_2" : "INVALID";
+                } else if (this.state === "DIGIT_2") {
+                    this.state = isDigit ? "DIGIT_3" : "INVALID";
+                } else if (this.state === "DIGIT_3") {
+                    this.state = isDigit ? "DIGIT_4" : "INVALID";
+                } else if (this.state === "DIGIT_4") {
+                    this.state = isDigit ? "DIGIT_5" : "INVALID";
+                } else if (this.state === "DIGIT_5") {
+                    this.state = isDigit ? "DIGIT_6" : "INVALID";
+                } else if (this.state === "DIGIT_6") {
+                    this.state = isDigit ? "SEVEN_DIGITS" : "INVALID";
+                } else if (this.state === "SEVEN_DIGITS") {
+                    if (isDigit) this.state = "EIGHT_DIGITS";
+                    else this.state = "INVALID";
+                } else if (this.state === "EIGHT_DIGITS") {
+                    this.state = "INVALID";
+                } else {
+                    this.state = "INVALID";
+                }
+                this.history.push({ prev, char, current: this.state });
+                return this.state;
+            }
+            isAccepted() { return this.state === "SEVEN_DIGITS" || this.state === "EIGHT_DIGITS"; }
+            validate(str) {
+                this.reset();
+                for (let c of str) {
+                    this.transition(c);
+                    if (this.state === "INVALID") return false;
+                }
+                return this.isAccepted();
+            }
+        }
+        class CandidateNameDFA {
+            constructor() { this.reset(); }
+            reset() {
+                this.state = "START";
+                this.history = [];
+            }
+            transition(char) {
+                const prev = this.state;
+                const isUpper = /[A-Z]/.test(char);
+                const isLower = /[a-z]/.test(char);
+                const isSep = char === ' ' || char === '-';
+                if (this.state === "START") {
+                    this.state = isUpper ? "READING_WORD" : "INVALID";
+                } else if (this.state === "READING_WORD") {
+                    if (isLower || char === "'") this.state = "FIRST_NAME";
+                    else if (isUpper) this.state = "READING_WORD";
+                    else this.state = "INVALID";
+                } else if (this.state === "FIRST_NAME") {
+                    if (isLower || char === "'") this.state = "FIRST_NAME";
+                    else if (isSep) this.state = "SPACE_OR_HYPHEN";
+                    else this.state = "INVALID";
+                } else if (this.state === "SPACE_OR_HYPHEN") {
+                    this.state = isUpper ? "READING_LAST_WORD" : "INVALID";
+                } else if (this.state === "READING_LAST_WORD") {
+                    if (isLower || char === "'") this.state = "LAST_NAME";
+                    else if (isUpper) this.state = "READING_LAST_WORD";
+                    else this.state = "INVALID";
+                } else if (this.state === "LAST_NAME") {
+                    if (isLower || char === "'") this.state = "LAST_NAME";
+                    else if (isSep) this.state = "SPACE_OR_HYPHEN";
+                    else this.state = "INVALID";
+                } else {
+                    this.state = "INVALID";
+                }
+                this.history.push({ prev, char, current: this.state });
+                return this.state;
+            }
+            isAccepted() { return this.state === "FIRST_NAME" || this.state === "LAST_NAME"; }
+            validate(str) {
+                this.reset();
+                if (!str || !/[A-Z]/.test(str[0])) return false;
+                for (let c of str) {
+                    this.transition(c);
+                    if (this.state === "INVALID") return false;
+                }
+                return this.isAccepted();
+            }
+        }
+        class EducationDFA {
+            constructor() { this.reset(); }
+            reset() {
+                this.state = "START";
+                this.history = [];
+            }
+            transition(tokenType) {
+                const prev = this.state;
+                if (this.state === "START") {
+                    if (tokenType === "DEGREE") this.state = "DEGREE_FOUND";
+                    else if (tokenType === "UNIVERSITY") this.state = "UNIVERSITY_NAME";
+                    else this.state = "START";
+                } else if (this.state === "DEGREE_FOUND") {
+                    if (tokenType === "FIELD") this.state = "FIELD_NAME";
+                    else if (tokenType === "UNIVERSITY") this.state = "UNIVERSITY_NAME";
+                    else if (tokenType === "DEGREE") this.state = "DEGREE_FOUND";
+                    else this.state = "DEGREE_FOUND";
+                } else if (this.state === "FIELD_NAME") {
+                    if (tokenType === "UNIVERSITY") this.state = "UNIVERSITY_NAME";
+                    else if (tokenType === "DEGREE") this.state = "DEGREE_FOUND";
+                    else this.state = "FIELD_NAME";
+                } else if (this.state === "UNIVERSITY_NAME") {
+                    if (tokenType === "DEGREE") this.state = "DEGREE_FOUND";
+                    else this.state = "UNIVERSITY_NAME";
+                } else {
+                    this.state = "INVALID";
+                }
+                this.history.push({ prev, tokenType, current: this.state });
+                return this.state;
+            }
+            isAccepted() { return this.state === "DEGREE_FOUND" || this.state === "FIELD_NAME" || this.state === "UNIVERSITY_NAME"; }
+        }
+        class SkillsDFA {
+            constructor() { this.reset(); }
+            reset() {
+                this.state = "START";
+                this.history = [];
+            }
+            transition(event) {
+                const prev = this.state;
+                if (this.state === "START") {
+                    this.state = (event === "HEADING_FOUND") ? "KEYWORD_MATCH" : "READING_TEXT";
+                } else if (this.state === "READING_TEXT") {
+                    this.state = (event === "HEADING_FOUND") ? "KEYWORD_MATCH" : "READING_TEXT";
+                } else if (this.state === "KEYWORD_MATCH") {
+                    if (event === "OTHER_HEADING") this.state = "READING_TEXT";
+                    else if (event === "HEADING_FOUND") this.state = "KEYWORD_MATCH";
+                    else this.state = "KEYWORD_MATCH";
+                }
+                this.history.push({ prev, event, current: this.state });
+                return this.state;
+            }
+            isAccepted() { return this.state === "KEYWORD_MATCH"; }
+        }
+        class WorkExperienceDFA {
+            constructor() { this.reset(); }
+            reset() {
+                this.state = "START";
+                this.history = [];
+            }
+            transition(tokenType) {
+                const prev = this.state;
+                if (this.state === "START") {
+                    this.state = (tokenType === "JOB_TITLE") ? "JOB_TITLE_FOUND" : "START";
+                } else if (this.state === "JOB_TITLE_FOUND") {
+                    if (tokenType === "COMPANY") this.state = "COMPANY_NAME";
+                    else if (tokenType === "DATE_START") this.state = "DATE_START";
+                    else if (tokenType === "JOB_TITLE") this.state = "JOB_TITLE_FOUND";
+                    else this.state = "JOB_TITLE_FOUND";
+                } else if (this.state === "COMPANY_NAME") {
+                    if (tokenType === "DATE_START") this.state = "DATE_START";
+                    else if (tokenType === "JOB_TITLE") this.state = "JOB_TITLE_FOUND";
+                    else this.state = "COMPANY_NAME";
+                } else if (this.state === "DATE_START") {
+                    if (tokenType === "DATE_END") this.state = "DATE_END";
+                    else if (tokenType === "JOB_TITLE") this.state = "JOB_TITLE_FOUND";
+                    else this.state = "DATE_START";
+                } else if (this.state === "DATE_END") {
+                    if (tokenType === "JOB_TITLE") this.state = "JOB_TITLE_FOUND";
+                    else this.state = "DATE_END";
+                } else {
+                    this.state = "INVALID";
+                }
+                this.history.push({ prev, tokenType, current: this.state });
+                return this.state;
+            }
+            isAccepted() { return this.state === "JOB_TITLE_FOUND" || this.state === "COMPANY_NAME" || this.state === "DATE_START" || this.state === "DATE_END"; }
+        }
+        // =====================================================================
+        // 2. REGEX PATTERNS & CONFIG
+        // =====================================================================
+        const REGEX_PATTERNS = {
+            email: /\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b/g,
+            phone: /(?:\+92|0)\s*(?:3\d{2}|21|42|51)\s*[-\s]?\s*\d{7,8}\b/g,
+            education: {
+                degree: /\b(BSCS|BS|BBA|MBA|MCS|MS|PhD|BE|B-Tech|Bachelor|Master|Doctorate)\b/i,
+                field: /\b(Computer Science|Software Engineering|Information Technology|Business Administration|Electrical Engineering|Data Science|Artificial Intelligence)\b/i,
+                university: /\b(FAST|NUST|GIKI|LUMS|UET|PUCIT|Punjab\s+University|National\s+University\s+of\s+Computer\s+and\s+Emerging\s+Sciences)\b/i,
+                year: /\b(?:20\d{2}-20\d{2}|class\s+of\s+20\d{2}|20\d{2})\b/i
+            },
+            skills_heading: /^\s*(?:Technical\s+)?Skills\s*:\s*$/i,
+            skills_keywords: /\b(Python|Java|JavaScript|React|Angular|Node\.js|Django|SQL|MySQL|MongoDB|AWS|Docker|Git|TensorFlow|PyTorch)\b/gi,
+            skills_cpp: /\b(C\+\+)(?!\w)/gi,
+            experience: {
+                job_title: /\b(Software Engineer|Developer|Manager|Analyst|Intern|Consultant|Lead|Engineer|Associate|Specialist)\b/i,
+                company: /\bat\s+([A-Z][a-zA-Z0-9\s&]+?)(?=\s+for|\s+in|\s+from|\s+since|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec|20\d{2})|\n|\r|§|$)/i,
+                date_range: /\b((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)?\s*\d{4})\s*[-–to\s]+\s*((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)?\s*\d{4}|Present|Current)\b/i
+            },
+            section_heading: /^\s*(?:Education|Experience|Work\s+Experience|Projects|Summary|Objective|Certifications|Publications)\s*:\s*$/i
+        };
+        // =====================================================================
+        // 3. PARSER COORDINATOR
+        // =====================================================================
+        class ResumeParser {
+            constructor() {
+                this.emailDFA = new EmailDFA();
+                this.phoneDFA = new PakistaniPhoneDFA();
+                this.nameDFA = new CandidateNameDFA();
+                this.eduDFA = new EducationDFA();
+                this.skillsDFA = new SkillsDFA();
+                this.expDFA = new WorkExperienceDFA();
+            }
+            parse(text) {
+                const lines = text.split('\n').map(l => l.trim());
+                logToConsole("[Parser] Initiating structural extraction scan...", "info");
+                const name = this._extractName(lines);
+                const emails = this._extractEmails(text);
+                const phones = this._extractPhones(text);
+                const education = this._extractEducation(lines);
+                const skills = this._extractSkills(lines);
+                const experience = this._extractExperience(lines);
+                logToConsole("[Parser] Completed structural scan.", "success");
+                return { name, emails, phones, education, skills, experience };
+            }
+            _extractName(lines) {
+                let scannedCount = 0;
+                for (let line of lines) {
+                    if (!line) continue;
+                    scannedCount++;
+                    if (scannedCount > 5) break;
+                    if (line.includes("@") || /[0-9]/.test(line)) continue;
+                    if (["resume", "cv", "curriculum vitae", "contact info", "about me"].includes(line.toLowerCase())) continue;
+                    // Dry-run name verification via NameDFA
+                    if (this.nameDFA.validate(line)) {
+                        logToConsole(`[NameDFA] Validated candidate name: "${line}"`, "success");
+                        // Print transition sequence
+                        this.nameDFA.history.forEach(step => {
+                            logToConsole(`  - State Change: '${step.char}' leads from ${step.prev} to ${step.current}`, "state-change");
+                        });
+                        return line;
+                    }
+                }
+                return "Not Found";
+            }
+            _extractEmails(text) {
+                const candidates = text.match(REGEX_PATTERNS.email) || [];
+                const verified = [];
+                candidates.forEach(cand => {
+                    if (this.emailDFA.validate(cand)) {
+                        logToConsole(`[EmailDFA] Validated email address: "${cand}"`, "success");
+                        this.emailDFA.history.forEach(step => {
+                            logToConsole(`  - State Change: '${step.char}' leads from ${step.prev} to ${step.current}`, "state-change");
+                        });
+                        verified.push(cand);
+                    }
+                });
+                return verified;
+            }
+            _extractPhones(text) {
+                const candidates = text.match(REGEX_PATTERNS.phone) || [];
+                const verified = [];
+                candidates.forEach(cand => {
+                    let clean = cand.replace(/[\s-]/g, "");
+                    if (cand.startsWith("+")) {
+                        clean = "+" + clean.replace("+", "");
+                    }
+                    if (this.phoneDFA.validate(clean)) {
+                        logToConsole(`[PhoneDFA] Validated Pakistani phone: "${cand}"`, "success");
+                        this.phoneDFA.history.forEach(step => {
+                            logToConsole(`  - State Change: '${step.char}' leads from ${step.prev} to ${step.current}`, "state-change");
+                        });
+                        verified.push(cand);
+                    }
+                });
+                return verified;
+            }
+            _extractEducation(lines) {
+                const records = [];
+                let currentEdu = null;
+                this.eduDFA.reset();
+                lines.forEach(line => {
+                    if (!line) return;
+                    if (REGEX_PATTERNS.section_heading.test(line) || REGEX_PATTERNS.skills_heading.test(line)) {
+                        if (currentEdu && (currentEdu.degree || currentEdu.university)) {
+                            records.push(currentEdu);
+                        }
+                        currentEdu = null;
+                        this.eduDFA.reset();
+                        return;
+                    }
+                    const tokens = [];
+                    const degMatch = line.match(REGEX_PATTERNS.education.degree);
+                    const fieldMatch = line.match(REGEX_PATTERNS.education.field);
+                    const uniMatch = line.match(REGEX_PATTERNS.education.university);
+                    const yearMatch = line.match(REGEX_PATTERNS.education.year);
+                    if (degMatch) tokens.push({ index: line.indexOf(degMatch[0]), type: "DEGREE", val: degMatch[0] });
+                    if (fieldMatch) tokens.push({ index: line.indexOf(fieldMatch[0]), type: "FIELD", val: fieldMatch[0] });
+                    if (uniMatch) tokens.push({ index: line.indexOf(uniMatch[0]), type: "UNIVERSITY", val: uniMatch[0] });
+                    if (yearMatch) tokens.push({ index: line.indexOf(yearMatch[0]), type: "YEAR", val: yearMatch[0] });
+                    if (tokens.length === 0) return;
+                    tokens.sort((a, b) => a.index - b.index);
+                    tokens.forEach(tok => {
+                        if (tok.type === "DEGREE" && currentEdu && currentEdu.degree) {
+                            records.push(currentEdu);
+                            currentEdu = null;
+                            this.eduDFA.reset();
+                        }
+                        if (!currentEdu) {
+                            currentEdu = { degree: "", field: "General", university: "", year: "Not Specified" };
+                        }
+                        this.eduDFA.transition(tok.type);
+                        logToConsole(`[EducationDFA] Event: "${tok.type}" matched "${tok.val}" -> State: ${this.eduDFA.state}`, "info");
+                        if (tok.type === "DEGREE") currentEdu.degree = tok.val;
+                        else if (tok.type === "FIELD") currentEdu.field = tok.val;
+                        else if (tok.type === "UNIVERSITY") currentEdu.university = tok.val;
+                        else if (tok.type === "YEAR") currentEdu.year = tok.val;
+                    });
+                });
+                if (currentEdu && (currentEdu.degree || currentEdu.university)) {
+                    records.push(currentEdu);
+                }
+                records.forEach(edu => {
+                    if (!edu.degree) edu.degree = "Degree not specified";
+                    if (!edu.university) edu.university = "University not specified";
+                });
+                return records;
+            }
+            _extractSkills(lines) {
+                this.skillsDFA.reset();
+                const list = [];
+                lines.forEach(line => {
+                    if (!line) return;
+                    if (REGEX_PATTERNS.skills_heading.test(line)) {
+                        this.skillsDFA.transition("HEADING_FOUND");
+                        return;
+                    } else if (REGEX_PATTERNS.section_heading.test(line)) {
+                        this.skillsDFA.transition("OTHER_HEADING");
+                        return;
+                    }
+                    if (this.skillsDFA.isAccepted()) {
+                        // Scan for standard keywords
+                        const matches = line.match(REGEX_PATTERNS.skills_keywords) || [];
+                        matches.forEach(m => list.push(this._normalizeSkillCase(m)));
+                        
+                        // Scan for C++
+                        const cppMatches = line.match(REGEX_PATTERNS.skills_cpp) || [];
+                        cppMatches.forEach(m => list.push("C++"));
+                    }
+                });
+                // Fallback: Global search
+                if (list.length === 0) {
+                    const allText = lines.join(" ");
+                    const matches = allText.match(REGEX_PATTERNS.skills_keywords) || [];
+                    matches.forEach(m => list.push(this._normalizeSkillCase(m)));
+                    
+                    const cppMatches = allText.match(REGEX_PATTERNS.skills_cpp) || [];
+                    cppMatches.forEach(m => list.push("C++"));
+                }
+                return [...new Set(list)];
+            }
+            _normalizeSkillCase(skill) {
+                const mapping = {
+                    "python": "Python", "java": "Java", "c++": "C++", "javascript": "JavaScript",
+                    "react": "React", "angular": "Angular", "node.js": "Node.js", "django": "Django",
+                    "sql": "SQL", "mysql": "MySQL", "mongodb": "MongoDB", "aws": "AWS",
+                    "docker": "Docker", "git": "Git", "tensorflow": "TensorFlow", "pytorch": "PyTorch"
+                };
+                return mapping[skill.toLowerCase()] || skill;
+            }
+            _extractExperience(lines) {
+                const records = [];
+                let currentExp = null;
+                this.expDFA.reset();
+                lines.forEach(line => {
+                    if (!line) return;
+                    if (REGEX_PATTERNS.section_heading.test(line) || REGEX_PATTERNS.skills_heading.test(line)) {
+                        if (currentExp && currentExp.job_title) {
+                            records.push(currentExp);
+                        }
+                        currentExp = null;
+                        this.expDFA.reset();
+                        return;
+                    }
+                    const tokens = [];
+                    const titleMatch = line.match(REGEX_PATTERNS.experience.job_title);
+                    const compMatch = line.match(REGEX_PATTERNS.experience.company);
+                    const dateMatch = line.match(REGEX_PATTERNS.experience.date_range);
+                    if (titleMatch) tokens.push({ index: line.indexOf(titleMatch[0]), type: "JOB_TITLE", val: titleMatch[0] });
+                    if (compMatch) tokens.push({ index: line.indexOf(compMatch[0]), type: "COMPANY", val: compMatch[1] });
+                    if (dateMatch) {
+                        tokens.push({ index: line.indexOf(dateMatch[0]), type: "DATE_START", val: dateMatch[1] });
+                        tokens.push({ index: line.indexOf(dateMatch[0]) + dateMatch[1].length, type: "DATE_END", val: dateMatch[2] });
+                    }
+                    if (tokens.length === 0) return;
+                    tokens.sort((a, b) => a.index - b.index);
+                    tokens.forEach(tok => {
+                        if (tok.type === "JOB_TITLE" && currentExp && currentExp.job_title) {
+                            records.push(currentExp);
+                            currentExp = null;
+                            this.expDFA.reset();
+                        }
+                        if (!currentExp) {
+                            currentExp = { job_title: "", company: "Not Specified", date_range: "Not Specified" };
+                        }
+                        this.expDFA.transition(tok.type);
+                        logToConsole(`[ExperienceDFA] Event: "${tok.type}" matched "${tok.val}" -> State: ${this.expDFA.state}`, "info");
+                        if (tok.type === "JOB_TITLE") currentExp.job_title = tok.val;
+                        else if (tok.type === "COMPANY") currentExp.company = tok.val;
+                        else if (tok.type === "DATE_START") currentExp.date_range = tok.val;
+                        else if (tok.type === "DATE_END") {
+                            if (currentExp.date_range !== "Not Specified" && currentExp.date_range !== tok.val) {
+                                currentExp.date_range = `${currentExp.date_range} - ${tok.val}`;
+                            } else {
+                                currentExp.date_range = tok.val;
+                            }
+                        }
+                    });
+                });
+                if (currentExp && currentExp.job_title) {
+                    records.push(currentExp);
+                }
+                return records;
+            }
+        }
+        // =====================================================================
+        // 4. PRELOADED RESUME EXAMPLE DATA
+        // =====================================================================
+        const SAMPLE_RESUMES = [
+            {
+                type: "Student Fresher",
+                text: `Ayesha Ahmed\nayesha.ahmed@gmail.com | 0333-1234567 | Islamabad, Pakistan\n\nOBJECTIVE\nMotivated software engineering student seeking an entry-level internship position.\n\nEDUCATION\nBSCS in Computer Science\nNUST, Islamabad\nClass of 2024\n\nTechnical Skills:\nPython, Java, SQL, Git\n\nEXPERIENCE\nIntern at TechSolutions\nJun 2023 - Aug 2023\nAssisted in developing automated Python scripts for database migrations.`
+            },
+            {
+                type: "Experienced Professional",
+                text: `Kamran Khan\nPhone: 021-34567890 | Email: kamran.khan@yahoo.com | Karachi\n\nSUMMARY\nExperienced product manager with over 5 years of experience leading cross-functional tech teams.\n\nEXPERIENCE\nManager at HBL\nJan 2018 - Present\nLed product team to design and release retail banking applications.\n\nAnalyst at K-Electric\nFeb 2015 - Dec 2017\nCompiled technical project requirements and drafted dashboard systems.\n\nEDUCATION\nMBA in Business Administration\nLUMS, Lahore\n2015-2017\n\nTechnical Skills:\nSQL, MySQL, AWS, Django, Docker`
+            },
+            {
+                type: "Technical Developer",
+                text: `Zainab Malik\nEmail: zainab.malik@fast.edu\nPhone: +923009876543\nLinkedIn: linkedin.com/in/zainab-malik\n\nSUMMARY\nPrincipal developer specialized in machine learning pipelines and full-stack solutions.\n\nEDUCATION\nMS in Software Engineering\nFAST, Lahore\n2019-2021\n\nSkills:\nC++, JavaScript, React, Node.js, TensorFlow, PyTorch, MongoDB\n\nEXPERIENCE\nLead Developer at VentureDive\nJan 2022 - Current\nArchitected and built React and Node.js applications with deep learning extensions.\n\nSoftware Engineer at Systems Limited\nJul 2020 - Dec 2021\nWrote backend services in Node.js and maintained MySQL databases.`
+            }
+        ];
+        // =====================================================================
+        // 5. INTERACTIVE & UI UTILITIES
+        // =====================================================================
+        const parser = new ResumeParser();
+        let currentExtractedData = null;
+        function loadSample(index) {
+            document.getElementById("resumeText").value = SAMPLE_RESUMES[index].text;
+            logToConsole(`[System] Loaded pre-loaded sample: "${SAMPLE_RESUMES[index].type}"`, "info");
+        }
+        function clearConsole() {
+            document.getElementById("consoleBody").innerHTML = "";
+        }
+        function logToConsole(message, type = "") {
+            const body = document.getElementById("consoleBody");
+            const div = document.createElement("div");
+            div.className = `console-line ${type}`;
+            div.innerText = message;
+            body.appendChild(div);
+            body.scrollTop = body.scrollHeight;
+        }
+        function parseResume() {
+            const text = document.getElementById("resumeText").value;
+            if (!text.trim()) {
+                alert("Please paste resume text or load a sample first!");
+                return;
+            }
+            clearConsole();
+            const data = parser.parse(text);
+            currentExtractedData = data;
+            renderResults(data);
+        }
+        function renderResults(data) {
+            // Render Profile Cards
+            document.getElementById("outName").innerText = data.name;
+            document.getElementById("outName").classList.remove("empty");
+            document.getElementById("outEmails").innerText = data.emails.join(", ") || "Not Found";
+            document.getElementById("outEmails").classList.remove("empty");
+            document.getElementById("outPhones").innerText = data.phones.join(", ") || "Not Found";
+            document.getElementById("outPhones").classList.remove("empty");
+            // Render Skills Badge
+            const skillsBox = document.getElementById("outSkills");
+            skillsBox.innerHTML = "";
+            if (data.skills.length > 0) {
+                data.skills.forEach(s => {
+                    const badge = document.createElement("span");
+                    badge.className = "skill-badge";
+                    badge.innerText = s;
+                    skillsBox.appendChild(badge);
+                });
+            } else {
+                skillsBox.innerHTML = '<span class="info-value empty">Not Found</span>';
+            }
+            // Render Education Table
+            const eduTable = document.getElementById("educationTable").getElementsByTagName("tbody")[0];
+            eduTable.innerHTML = "";
+            if (data.education.length > 0) {
+                data.education.forEach(edu => {
+                    const row = eduTable.insertRow();
+                    row.insertCell(0).innerText = edu.degree;
+                    row.insertCell(1).innerText = edu.field;
+                    row.insertCell(2).innerText = edu.university;
+                    row.insertCell(3).innerText = edu.year;
+                });
+            } else {
+                eduTable.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted); font-style: italic;">No records extracted</td></tr>';
+            }
+            // Render Experience Table
+            const expTable = document.getElementById("experienceTable").getElementsByTagName("tbody")[0];
+            expTable.innerHTML = "";
+            if (data.experience.length > 0) {
+                data.experience.forEach(exp => {
+                    const row = expTable.insertRow();
+                    row.insertCell(0).innerText = exp.job_title;
+                    row.insertCell(1).innerText = exp.company;
+                    row.insertCell(2).innerText = exp.date_range;
+                });
+            } else {
+                expTable.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-muted); font-style: italic;">No records extracted</td></tr>';
+            }
+        }
+        function exportCSV() {
+            if (!currentExtractedData) {
+                alert("No parsed profile available to export!");
+                return;
+            }
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += `"Candidate Name","${currentExtractedData.name}"\n`;
+            csvContent += `"Emails","${currentExtractedData.emails.join(', ')}"\n`;
+            csvContent += `"Phones","${currentExtractedData.phones.join(', ')}"\n`;
+            csvContent += `"Skills","${currentExtractedData.skills.join(', ')}"\n\n`;
+            csvContent += `"--- EDUCATION ---"\n`;
+            csvContent += `"Degree","Field/Major","University","Year"\n`;
+            currentExtractedData.education.forEach(edu => {
+                csvContent += `"${edu.degree}","${edu.field}","${edu.university}","${edu.year}"\n`;
+            });
+            csvContent += `\n`;
+            csvContent += `"--- EXPERIENCE ---"\n`;
+            csvContent += `"Job Title","Company","Date Range"\n`;
+            currentExtractedData.experience.forEach(exp => {
+                csvContent += `"${exp.job_title}","${exp.company}","${exp.date_range}"\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `${currentExtractedData.name.replace(/\s+/g, "_")}_profile.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        function runTestSuite() {
+            clearConsole();
+            logToConsole("============================================================", "info");
+            logToConsole("           VERIFICATION & ACCURACY TEST SUITE            ", "info");
+            logToConsole("============================================================", "info");
+            let totalChecks = 0;
+            let passedChecks = 0;
+            const expectedList = [
+                {
+                    type: "Student Fresher",
+                    name: "Ayesha Ahmed", email: "ayesha.ahmed@gmail.com", phone: "0333-1234567",
+                    degree: "BSCS", university: "NUST", skillCount: 4
+                },
+                {
+                    type: "Experienced Professional",
+                    name: "Kamran Khan", email: "kamran.khan@yahoo.com", phone: "021-34567890",
+                    degree: "MBA", university: "LUMS", skillCount: 5
+                },
+                {
+                    type: "Technical Developer",
+                    name: "Zainab Malik", email: "zainab.malik@fast.edu", phone: "+923009876543",
+                    degree: "MS", university: "FAST", skillCount: 7
+                }
+            ];
+            SAMPLE_RESUMES.forEach((example, idx) => {
+                logToConsole(`\nAnalyzing Resume: ${example.type}`, "info");
+                const parsed = parser.parse(example.text);
+                const expected = expectedList[idx];
+                // Name check
+                const nameOk = parsed.name.toLowerCase() === expected.name.toLowerCase();
+                passedChecks += nameOk ? 1 : 0; totalChecks++;
+                logToConsole(`  - Name: Expected='${expected.name}' | Parsed='${parsed.name}' -> ${nameOk ? "PASS" : "FAIL"}`, nameOk ? "success" : "warning");
+                // Email check
+                const email = parsed.emails[0] || "Not Found";
+                const emailOk = email.toLowerCase() === expected.email.toLowerCase();
+                passedChecks += emailOk ? 1 : 0; totalChecks++;
+                logToConsole(`  - Email: Expected='${expected.email}' | Parsed='${email}' -> ${emailOk ? "PASS" : "FAIL"}`, emailOk ? "success" : "warning");
+                // Phone check
+                const phone = parsed.phones[0] || "Not Found";
+                const phoneOk = phone.replace(/[\s-]/g, "") === expected.phone.replace(/[\s-]/g, "");
+                passedChecks += phoneOk ? 1 : 0; totalChecks++;
+                logToConsole(`  - Phone: Expected='${expected.phone}' | Parsed='${phone}' -> ${phoneOk ? "PASS" : "FAIL"}`, phoneOk ? "success" : "warning");
+                // Education Degree check
+                const degree = parsed.education[0] ? parsed.education[0].degree : "Not Found";
+                const degreeOk = degree.toLowerCase().includes(expected.degree.toLowerCase());
+                passedChecks += degreeOk ? 1 : 0; totalChecks++;
+                logToConsole(`  - Degree: Expected='${expected.degree}' | Parsed='${degree}' -> ${degreeOk ? "PASS" : "FAIL"}`, degreeOk ? "success" : "warning");
+                // Education Uni check
+                const uni = parsed.education[0] ? parsed.education[0].university : "Not Found";
+                const uniOk = uni.toLowerCase().includes(expected.university.toLowerCase());
+                passedChecks += uniOk ? 1 : 0; totalChecks++;
+                logToConsole(`  - University: Expected='${expected.university}' | Parsed='${uni}' -> ${uniOk ? "PASS" : "FAIL"}`, uniOk ? "success" : "warning");
+                // Skills count check
+                const skillsOk = parsed.skills.length >= expected.skillCount;
+                passedChecks += skillsOk ? 1 : 0; totalChecks++;
+                logToConsole(`  - Skills: Expected >= ${expected.skillCount} | Parsed=${parsed.skills.length} -> ${skillsOk ? "PASS" : "FAIL"}`, skillsOk ? "success" : "warning");
+            });
+            const rate = ((passedChecks / totalChecks) * 100).toFixed(2);
+            logToConsole("\n============================================================", "info");
+            logToConsole(`Accuracy Test Complete: ${passedChecks}/${totalChecks} passed -> ${rate}% Accuracy.`, "success");
+            logToConsole("============================================================", "info");
+        }
+        // =====================================================================
+        // 6. DRAG AND DROP HANDLERS
+        // =====================================================================
+        const dropzone = document.getElementById("dropzone");
+        const fileInput = document.getElementById("fileInput");
+        dropzone.addEventListener("click", () => fileInput.click());
+        dropzone.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropzone.classList.add("dragover");
+        });
+        dropzone.addEventListener("dragleave", () => {
+            dropzone.classList.remove("dragover");
+        });
+        dropzone.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropzone.classList.remove("dragover");
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        fileInput.addEventListener("change", (e) => {
+            const files = e.target.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        function handleFile(file) {
+            if (file.type !== "text/plain" && !file.name.endsWith(".txt")) {
+                alert("Only plain text (.txt) files are supported!");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById("resumeText").value = e.target.result;
+                logToConsole(`[System] Successfully uploaded and read file: "${file.name}"`, "success");
+            };
+            reader.readAsText(file);
+        }
+        // Load Fresher by default on start
+        window.onload = () => loadSample(0);
+    </script>
+</body>
+</html>
